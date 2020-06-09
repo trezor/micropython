@@ -417,7 +417,7 @@ dispatch_loop:
                     DECODE_QSTR;
                     mp_obj_t top = TOP();
                     mp_map_elem_t *elem = NULL;
-                    if (mp_obj_is_instance_type(mp_obj_get_type(top))) {
+                    if (mp_obj_is_instance_dict_type(mp_obj_get_type(top))) {
                         mp_obj_instance_t *self = MP_OBJ_TO_PTR(top);
                         elem = mp_map_cached_lookup(&self->members, qst, (uint8_t*)ip);
                     }
@@ -508,7 +508,7 @@ dispatch_loop:
                     DECODE_QSTR;
                     mp_map_elem_t *elem = NULL;
                     mp_obj_t top = TOP();
-                    if (mp_obj_is_instance_type(mp_obj_get_type(top)) && sp[-1] != MP_OBJ_NULL) {
+                    if (mp_obj_is_instance_dict_type(mp_obj_get_type(top)) && sp[-1] != MP_OBJ_NULL) {
                         mp_obj_instance_t *self = MP_OBJ_TO_PTR(top);
                         elem = mp_map_cached_lookup(&self->members, qst, (uint8_t*)ip);
                     }
