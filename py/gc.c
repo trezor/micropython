@@ -884,7 +884,7 @@ void gc_dump_alloc_table(void) {
                 else if (*ptr == &mp_type_module) { c = 'M'; }
                 else {
                     c = 'h';
-                    #if 0
+                    #if 1
                     // This code prints "Q" for qstr-pool data, and "q" for qstr-str
                     // data.  It can be useful to see how qstrs are being allocated,
                     // but is disabled by default because it is very slow.
