@@ -34,6 +34,8 @@
 
 #if MICROPY_ENABLE_GC
 
+uint64_t alloc_count = 0;
+
 #if MICROPY_DEBUG_VERBOSE // print debugging info
 #define DEBUG_PRINT (1)
 #define DEBUG_printf DEBUG_printf
@@ -553,6 +555,8 @@ found:
     #if EXTENSIVE_HEAP_PROFILING
     gc_dump_alloc_table();
     #endif
+
+    ++alloc_count;
 
     return ret_ptr;
 }
