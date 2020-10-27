@@ -35,7 +35,7 @@
 #if MICROPY_ENABLE_GC
 
 #if MICROPY_TREZOR_MEMPERF
-uint64_t alloc_count = 0;
+mp_uint_t alloc_count = 0;
 #endif
 
 #if MICROPY_DEBUG_VERBOSE // print debugging info

@@ -166,7 +166,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_2(mp_micropython_schedule_obj, mp_micropython_sch
 
 #if MICROPY_TREZOR_MEMPERF
 STATIC mp_obj_t mp_micropython_alloc_count(void) {
-    return mp_obj_new_int(alloc_count);
+    return mp_obj_new_int_from_uint(alloc_count);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(mp_micropython_alloc_count_obj, mp_micropython_alloc_count);
 #endif
