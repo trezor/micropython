@@ -164,6 +164,13 @@ STATIC mp_obj_t mp_micropython_schedule(mp_obj_t function, mp_obj_t arg) {
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(mp_micropython_schedule_obj, mp_micropython_schedule);
 #endif
 
+#if MICROPY_TREZOR_MEMPERF
+STATIC mp_obj_t mp_micropython_alloc_count(void) {
+    return mp_obj_new_int_from_uint(alloc_count);
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_0(mp_micropython_alloc_count_obj, mp_micropython_alloc_count);
+#endif
+
 STATIC const mp_rom_map_elem_t mp_module_micropython_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_micropython) },
     { MP_ROM_QSTR(MP_QSTR_const), MP_ROM_PTR(&mp_identity_obj) },
@@ -200,6 +207,9 @@ STATIC const mp_rom_map_elem_t mp_module_micropython_globals_table[] = {
     #endif
     #if MICROPY_ENABLE_SCHEDULER
     { MP_ROM_QSTR(MP_QSTR_schedule), MP_ROM_PTR(&mp_micropython_schedule_obj) },
+    #endif
+    #if MICROPY_TREZOR_MEMPERF
+    { MP_ROM_QSTR(MP_QSTR_alloc_count), MP_ROM_PTR(&mp_micropython_alloc_count_obj) },
     #endif
 };
 
