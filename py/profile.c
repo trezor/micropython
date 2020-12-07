@@ -76,6 +76,72 @@ STATIC void code_print(const mp_print_t *print, mp_obj_t o_in, mp_print_kind_t k
         );
 }
 
+#if MICROPY_TREZOR_MEMPERF
+
+#include <stdlib.h>
+
+STATIC void code_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest) {
+    if (dest[0] != MP_OBJ_NULL) {
+        // not load attribute
+        return;
+    }
+    mp_obj_code_t *o = MP_OBJ_TO_PTR(self_in);
+    const mp_raw_code_t *rc = o->rc;
+    const mp_bytecode_prelude_t *prelude = &rc->prelude;
+    switch (attr) {
+        case MP_QSTR_co_code:
+            dest[0] = MP_OBJ_NULL; /*mp_obj_new_bytes(
+                (void *)prelude->opcodes,
+                rc->fun_data_len - (prelude->opcodes - (const byte *)rc->fun_data)
+                );*/
+            break;
+        case MP_QSTR_co_consts:
+            dest[0] = MP_OBJ_NULL; // MP_OBJ_FROM_PTR(code_consts(rc));
+            break;
+        case MP_QSTR_co_filename:
+            dest[0] = MP_OBJ_NEW_QSTR(prelude->qstr_source_file);
+            break;
+        case MP_QSTR_co_firstlineno:
+            dest[0] = MP_OBJ_NEW_SMALL_INT(mp_prof_bytecode_lineno(rc, 0));
+            break;
+        case MP_QSTR_co_name:
+            dest[0] = MP_OBJ_NEW_QSTR(prelude->qstr_block_name);
+            break;
+        case MP_QSTR_co_names:
+            dest[0] = MP_OBJ_FROM_PTR(o->dict_locals);
+            break;
+        case MP_QSTR_co_lnotab:
+            dest[0] = MP_OBJ_NULL;
+            /*if (!o->lnotab) {
+                o->lnotab = raw_code_lnotab(rc);
+            }
+            dest[0] = o->lnotab;*/
+            break;
+    }
+}
+
+const mp_obj_type_t mp_type_code = {
+    { &mp_type_type },
+    .name = MP_QSTR_code,
+    .print = code_print,
+    .unary_op = mp_generic_unary_op,
+    .attr = code_attr,
+};
+
+mp_obj_t mp_obj_malloc_code(const mp_raw_code_t *rc) {
+    mp_obj_code_t *o = (mp_obj_code_t*)malloc(sizeof(mp_obj_code_t));
+    if (o == NULL) {
+        return MP_OBJ_NULL;
+    }
+    o->base.type = &mp_type_code;
+    o->rc = rc;
+    o->dict_locals = mp_locals_get(); // this is a wrong! how to do this properly?
+    o->lnotab = MP_OBJ_NULL;
+    return MP_OBJ_FROM_PTR(o);
+}
+
+#else
+
 STATIC mp_obj_tuple_t *code_consts(const mp_raw_code_t *rc) {
     const mp_bytecode_prelude_t *prelude = &rc->prelude;
     int start = prelude->n_pos_args + prelude->n_kwonly_args + rc->n_obj;
@@ -192,6 +258,8 @@ mp_obj_t mp_obj_new_code(const mp_raw_code_t *rc) {
     return MP_OBJ_FROM_PTR(o);
 }
 
+#endif /* MICROPY_TREZOR_MEMPERF */
+
 /******************************************************************************/
 // frame object
 
@@ -248,6 +316,35 @@ const mp_obj_type_t mp_type_frame = {
     .attr = frame_attr,
 };
 
+#if MICROPY_TREZOR_MEMPERF
+
+mp_obj_t mp_obj_malloc_frame(const mp_code_state_t *code_state) {
+    mp_obj_frame_t *o = (mp_obj_frame_t*)malloc(sizeof(mp_obj_frame_t));
+    if (o == NULL) {
+        return MP_OBJ_NULL;
+    }
+
+    mp_obj_code_t *code = o->code = MP_OBJ_TO_PTR(mp_obj_malloc_code(code_state->fun_bc->rc));
+    if (code == NULL) {
+        return MP_OBJ_NULL;
+    }
+
+    const mp_raw_code_t *rc = code->rc;
+    const mp_bytecode_prelude_t *prelude = &rc->prelude;
+    o->code_state = code_state;
+    o->base.type = &mp_type_frame;
+    o->back = NULL;
+    o->code = code;
+    o->lasti = code_state->ip - prelude->opcodes;
+    o->lineno = mp_prof_bytecode_lineno(rc, o->lasti);
+    o->trace_opcodes = false;
+    o->callback = MP_OBJ_NULL;
+
+    return MP_OBJ_FROM_PTR(o);
+}
+
+#else
+
 mp_obj_t mp_obj_new_frame(const mp_code_state_t *code_state) {
     if (gc_is_locked()) {
         return MP_OBJ_NULL;
@@ -276,6 +373,8 @@ mp_obj_t mp_obj_new_frame(const mp_code_state_t *code_state) {
 
     return MP_OBJ_FROM_PTR(o);
 }
+
+#endif /* MICROPY_TREZOR_MEMPERF */
 
 
 /******************************************************************************/
@@ -313,6 +412,52 @@ mp_obj_t mp_prof_settrace(mp_obj_t callback) {
     }
     return mp_const_none;
 }
+
+#if MICROPY_TREZOR_MEMPERF
+
+mp_obj_t mp_prof_frame_enter(mp_code_state_t *code_state) {
+    assert(!mp_prof_is_executing);
+
+    mp_obj_frame_t *frame = MP_OBJ_TO_PTR(mp_obj_malloc_frame(code_state));
+    if (frame == NULL) {
+        // Couldn't allocate a frame object
+        return MP_OBJ_NULL;
+    }
+
+    if (code_state->prev_state && code_state->frame == NULL) {
+        // We are entering not-yet-traced frame
+        // which means it's a CALL event (not a GENERATOR)
+        // so set the function definition line.
+        const mp_raw_code_t *rc = code_state->fun_bc->rc;
+        frame->lineno = rc->line_of_definition;
+        if (!rc->line_of_definition) {
+            frame->lineno = mp_prof_bytecode_lineno(rc, 0);
+        }
+    }
+    code_state->frame = frame;
+
+    if (!prof_trace_cb) {
+        return MP_OBJ_NULL;
+    }
+
+    mp_obj_t top;
+    prof_callback_args_t _args, *args = &_args;
+    args->frame = code_state->frame;
+
+    // SETTRACE event CALL
+    args->event = MP_OBJ_NEW_QSTR(MP_QSTR_call);
+    args->arg = mp_const_none;
+    top = mp_prof_callback_invoke(prof_trace_cb, args);
+
+    code_state->frame->callback = mp_obj_is_callable(top) ? top : MP_OBJ_NULL;
+
+    // Invalidate the last executed line number so the LINE trace can trigger after this CALL.
+    frame->lineno = 0;
+
+    return top;
+}
+
+#else
 
 mp_obj_t mp_prof_frame_enter(mp_code_state_t *code_state) {
     assert(!mp_prof_is_executing);
@@ -355,6 +500,8 @@ mp_obj_t mp_prof_frame_enter(mp_code_state_t *code_state) {
 
     return top;
 }
+
+#endif /* MICROPY_TREZOR_MEMPERF */
 
 mp_obj_t mp_prof_frame_update(const mp_code_state_t *code_state) {
     mp_obj_frame_t *frame = code_state->frame;
