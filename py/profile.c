@@ -24,6 +24,7 @@
  * THE SOFTWARE.
  */
 
+#include <stdlib.h>
 #include "py/profile.h"
 #include "py/bc0.h"
 #include "py/gc.h"
@@ -76,62 +77,6 @@ STATIC void code_print(const mp_print_t *print, mp_obj_t o_in, mp_print_kind_t k
         );
 }
 
-STATIC mp_obj_tuple_t *code_consts(const mp_raw_code_t *rc) {
-    const mp_bytecode_prelude_t *prelude = &rc->prelude;
-    int start = prelude->n_pos_args + prelude->n_kwonly_args + rc->n_obj;
-    int stop = prelude->n_pos_args + prelude->n_kwonly_args + rc->n_obj + rc->n_raw_code;
-    mp_obj_tuple_t *consts = MP_OBJ_TO_PTR(mp_obj_new_tuple(stop - start + 1, NULL));
-
-    size_t const_no = 0;
-    for (int i = start; i < stop; ++i) {
-        mp_obj_t code = mp_obj_new_code((const mp_raw_code_t *)MP_OBJ_TO_PTR(rc->const_table[i]));
-        if (code == MP_OBJ_NULL) {
-            m_malloc_fail(sizeof(mp_obj_code_t));
-        }
-        consts->items[const_no++] = code;
-    }
-    consts->items[const_no++] = mp_const_none;
-
-    return consts;
-}
-
-STATIC mp_obj_t raw_code_lnotab(const mp_raw_code_t *rc) {
-    // const mp_bytecode_prelude_t *prelude = &rc->prelude;
-    uint start = 0;
-    uint stop = rc->fun_data_len - start;
-
-    uint last_lineno = mp_prof_bytecode_lineno(rc, start);
-    uint lasti = 0;
-
-    const uint buffer_chunk_size = (stop - start) >> 2; // heuristic magic
-    uint buffer_size = buffer_chunk_size;
-    byte *buffer = m_new(byte, buffer_size);
-    uint buffer_index = 0;
-
-    for (uint i = start; i < stop; ++i) {
-        uint lineno = mp_prof_bytecode_lineno(rc, i);
-        size_t line_diff = lineno - last_lineno;
-        if (line_diff > 0) {
-            uint instr_diff = (i - start) - lasti;
-
-            assert(instr_diff < 256);
-            assert(line_diff < 256);
-
-            if (buffer_index + 2 > buffer_size) {
-                buffer = m_renew(byte, buffer, buffer_size, buffer_size + buffer_chunk_size);
-                buffer_size = buffer_size + buffer_chunk_size;
-            }
-            last_lineno = lineno;
-            lasti = i - start;
-            buffer[buffer_index++] = instr_diff;
-            buffer[buffer_index++] = line_diff;
-        }
-    }
-
-    mp_obj_t o = mp_obj_new_bytes(buffer, buffer_index);
-    m_del(byte, buffer, buffer_size);
-    return o;
-}
 
 STATIC void code_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest) {
     if (dest[0] != MP_OBJ_NULL) {
@@ -143,13 +88,13 @@ STATIC void code_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest) {
     const mp_bytecode_prelude_t *prelude = &rc->prelude;
     switch (attr) {
         case MP_QSTR_co_code:
-            dest[0] = mp_obj_new_bytes(
+            dest[0] = MP_OBJ_NULL; /*mp_obj_new_bytes(
                 (void *)prelude->opcodes,
                 rc->fun_data_len - (prelude->opcodes - (const byte *)rc->fun_data)
-                );
+                );*/
             break;
         case MP_QSTR_co_consts:
-            dest[0] = MP_OBJ_FROM_PTR(code_consts(rc));
+            dest[0] = MP_OBJ_NULL; // MP_OBJ_FROM_PTR(code_consts(rc));
             break;
         case MP_QSTR_co_filename:
             dest[0] = MP_OBJ_NEW_QSTR(prelude->qstr_source_file);
@@ -164,10 +109,11 @@ STATIC void code_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest) {
             dest[0] = MP_OBJ_FROM_PTR(o->dict_locals);
             break;
         case MP_QSTR_co_lnotab:
-            if (!o->lnotab) {
+            dest[0] = MP_OBJ_NULL;
+            /*if (!o->lnotab) {
                 o->lnotab = raw_code_lnotab(rc);
             }
-            dest[0] = o->lnotab;
+            dest[0] = o->lnotab;*/
             break;
     }
 }
@@ -180,8 +126,8 @@ const mp_obj_type_t mp_type_code = {
     .attr = code_attr,
 };
 
-mp_obj_t mp_obj_new_code(const mp_raw_code_t *rc) {
-    mp_obj_code_t *o = m_new_obj_maybe(mp_obj_code_t);
+mp_obj_t mp_obj_malloc_code(const mp_raw_code_t *rc) {
+    mp_obj_code_t *o = (mp_obj_code_t*)malloc(sizeof(mp_obj_code_t));
     if (o == NULL) {
         return MP_OBJ_NULL;
     }
@@ -248,17 +194,13 @@ const mp_obj_type_t mp_type_frame = {
     .attr = frame_attr,
 };
 
-mp_obj_t mp_obj_new_frame(const mp_code_state_t *code_state) {
-    if (gc_is_locked()) {
-        return MP_OBJ_NULL;
-    }
-
-    mp_obj_frame_t *o = m_new_obj_maybe(mp_obj_frame_t);
+mp_obj_t mp_obj_malloc_frame(const mp_code_state_t *code_state) {
+    mp_obj_frame_t *o = (mp_obj_frame_t*)malloc(sizeof(mp_obj_frame_t));
     if (o == NULL) {
         return MP_OBJ_NULL;
     }
 
-    mp_obj_code_t *code = o->code = MP_OBJ_TO_PTR(mp_obj_new_code(code_state->fun_bc->rc));
+    mp_obj_code_t *code = o->code = MP_OBJ_TO_PTR(mp_obj_malloc_code(code_state->fun_bc->rc));
     if (code == NULL) {
         return MP_OBJ_NULL;
     }
@@ -317,7 +259,7 @@ mp_obj_t mp_prof_settrace(mp_obj_t callback) {
 mp_obj_t mp_prof_frame_enter(mp_code_state_t *code_state) {
     assert(!mp_prof_is_executing);
 
-    mp_obj_frame_t *frame = MP_OBJ_TO_PTR(mp_obj_new_frame(code_state));
+    mp_obj_frame_t *frame = MP_OBJ_TO_PTR(mp_obj_malloc_frame(code_state));
     if (frame == NULL) {
         // Couldn't allocate a frame object
         return MP_OBJ_NULL;
