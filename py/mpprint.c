@@ -43,6 +43,10 @@
 static const char pad_spaces[] = "                ";
 static const char pad_zeroes[] = "0000000000000000";
 
+#ifdef SYSTEM_VIEW
+size_t segger_print(const char* str, size_t len);
+#endif
+
 STATIC void plat_print_strn(void *env, const char *str, size_t len) {
     (void)env;
     MP_PLAT_PRINT_STRN(str, len);
