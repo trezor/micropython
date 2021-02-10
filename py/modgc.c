@@ -76,6 +76,17 @@ STATIC mp_obj_t gc_mem_alloc(void) {
 }
 MP_DEFINE_CONST_FUN_OBJ_0(gc_mem_alloc_obj, gc_mem_alloc);
 
+// mem_frag(): return the memory fragmentation
+STATIC mp_obj_t gc_mem_frag(void) {
+    gc_info_t info;
+    gc_info(&info);
+    size_t max_free_block = info.max_free * MICROPY_BYTES_PER_GC_BLOCK;
+    size_t total_free_space = info.free;
+    float frag = 1.0f - ((float)max_free_block / (float)total_free_space);
+    return mp_obj_new_float_from_f(frag);
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_0(gc_mem_frag_obj, gc_mem_frag);
+
 #if MICROPY_GC_ALLOC_THRESHOLD
 STATIC mp_obj_t gc_threshold(size_t n_args, const mp_obj_t *args) {
     if (n_args == 0) {
@@ -103,6 +114,7 @@ STATIC const mp_rom_map_elem_t mp_module_gc_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_isenabled), MP_ROM_PTR(&gc_isenabled_obj) },
     { MP_ROM_QSTR(MP_QSTR_mem_free), MP_ROM_PTR(&gc_mem_free_obj) },
     { MP_ROM_QSTR(MP_QSTR_mem_alloc), MP_ROM_PTR(&gc_mem_alloc_obj) },
+    { MP_ROM_QSTR(MP_QSTR_mem_frag), MP_ROM_PTR(&gc_mem_frag_obj) },
     #if MICROPY_GC_ALLOC_THRESHOLD
     { MP_ROM_QSTR(MP_QSTR_threshold), MP_ROM_PTR(&gc_threshold_obj) },
     #endif
