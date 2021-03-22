@@ -55,7 +55,10 @@ STATIC void cell_print(const mp_print_t *print, mp_obj_t o_in, mp_print_kind_t k
 }
 #endif
 
-STATIC const mp_obj_type_t mp_type_cell = {
+#ifndef TREZOR_EMULATOR
+STATIC
+#endif
+const mp_obj_type_t mp_type_cell = {
     { &mp_type_type },
     .name = MP_QSTR_, // cell representation is just value in < >
     #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_DETAILED
