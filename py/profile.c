@@ -120,7 +120,7 @@ STATIC void code_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest) {
     }
 }
 
-const mp_obj_type_t mp_type_code = {
+const mp_obj_type_t mp_type_settrace_codeobj = {
     { &mp_type_type },
     .name = MP_QSTR_code,
     .print = code_print,
@@ -133,7 +133,7 @@ mp_obj_t mp_obj_malloc_code(const mp_raw_code_t *rc) {
     if (o == NULL) {
         return MP_OBJ_NULL;
     }
-    o->base.type = &mp_type_code;
+    o->base.type = &mp_type_settrace_codeobj;
     o->rc = rc;
     o->dict_locals = mp_locals_get(); // this is a wrong! how to do this properly?
     o->lnotab = MP_OBJ_NULL;
@@ -238,7 +238,7 @@ STATIC void code_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest) {
     }
 }
 
-const mp_obj_type_t mp_type_code = {
+const mp_obj_type_t mp_type_settrace_codeobj = {
     { &mp_type_type },
     .name = MP_QSTR_code,
     .print = code_print,
@@ -251,7 +251,7 @@ mp_obj_t mp_obj_new_code(const mp_raw_code_t *rc) {
     if (o == NULL) {
         return MP_OBJ_NULL;
     }
-    o->base.type = &mp_type_code;
+    o->base.type = &mp_type_settrace_codeobj;
     o->rc = rc;
     o->dict_locals = mp_locals_get(); // this is a wrong! how to do this properly?
     o->lnotab = MP_OBJ_NULL;
