@@ -167,12 +167,6 @@ mp_obj_t mp_obj_str_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_
                 }
                 #endif
 
-                // Check if a qstr with this data already exists
-                qstr q = qstr_find_strn((const char *)str_data, str_len);
-                if (q != MP_QSTRnull) {
-                    return MP_OBJ_NEW_QSTR(q);
-                }
-
                 mp_obj_str_t *o = MP_OBJ_TO_PTR(mp_obj_new_str_copy(type, NULL, str_len));
                 o->data = str_data;
                 o->hash = str_hash;
@@ -2055,16 +2049,6 @@ mp_obj_t mp_obj_new_str_via_qstr(const char *data, size_t len) {
 // the exact length required and then reused for the str/bytes object.  The vstr
 // is cleared and can safely be passed to vstr_free if it was heap allocated.
 mp_obj_t mp_obj_new_str_from_vstr(const mp_obj_type_t *type, vstr_t *vstr) {
-    // if not a bytes object, look if a qstr with this data already exists
-    if (type == &mp_type_str) {
-        qstr q = qstr_find_strn(vstr->buf, vstr->len);
-        if (q != MP_QSTRnull) {
-            vstr_clear(vstr);
-            vstr->alloc = 0;
-            return MP_OBJ_NEW_QSTR(q);
-        }
-    }
-
     // make a new str/bytes object
     mp_obj_str_t *o = m_new_obj(mp_obj_str_t);
     o->base.type = type;
@@ -2082,14 +2066,7 @@ mp_obj_t mp_obj_new_str_from_vstr(const mp_obj_type_t *type, vstr_t *vstr) {
 }
 
 mp_obj_t mp_obj_new_str(const char *data, size_t len) {
-    qstr q = qstr_find_strn(data, len);
-    if (q != MP_QSTRnull) {
-        // qstr with this data already exists
-        return MP_OBJ_NEW_QSTR(q);
-    } else {
-        // no existing qstr, don't make one
-        return mp_obj_new_str_copy(&mp_type_str, (const byte *)data, len);
-    }
+    return mp_obj_new_str_copy(&mp_type_str, (const byte *)data, len);
 }
 
 mp_obj_t mp_obj_str_intern(mp_obj_t str) {
