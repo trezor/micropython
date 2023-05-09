@@ -35,6 +35,12 @@
 #include <assert.h>
 #include "tinf.h"
 
+#if defined(__GNUC__) && (__GNUC__ >= 5)
+  #define OPTIMIZE_O3 __attribute__((optimize("-O3")))
+#else
+  #define OPTIMIZE_O3
+#endif
+
 #define UZLIB_DUMP_ARRAY(heading, arr, size) \
     { \
         printf("%s", heading); \
@@ -549,7 +555,7 @@ void uzlib_uncompress_init(TINF_DATA *d, void *dict, unsigned int dictLen)
 }
 
 /* inflate next output bytes from compressed stream */
-__attribute__((optimize("-O3")))
+OPTIMIZE_O3
 int uzlib_uncompress(TINF_DATA *d)
 {
     do {
