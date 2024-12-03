@@ -36,7 +36,7 @@ def get_version_info_from_git():
         return None
     try:
         git_hash = subprocess.check_output(
-            ["git", "rev-parse", "--short", "HEAD"],
+            ["git", "rev-parse", "--short=7", "HEAD"],
             stderr=subprocess.STDOUT,
             universal_newlines=True,
         ).strip()
