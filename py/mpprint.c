@@ -536,6 +536,7 @@ int mp_vprintf(const mp_print_t *print, const char *fmt, va_list args) {
             }
             case 'p':
             case 'P': // don't bother to handle upcase for 'P'
+                chrs += mp_print_str(print, "0x");  // used by meminfo JSON dumps
                 // Use unsigned long int to work on both ILP32 and LP64 systems
                 chrs += mp_print_int(print, va_arg(args, unsigned long int), 0, 16, 'a', flags, fill, width);
                 break;
