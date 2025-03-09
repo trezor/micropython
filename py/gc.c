@@ -481,7 +481,15 @@ void *gc_alloc(size_t n_bytes, unsigned int alloc_flags) {
     #if MICROPY_GC_ALLOC_THRESHOLD
     if (!collected && MP_STATE_MEM(gc_alloc_amount) >= MP_STATE_MEM(gc_alloc_threshold)) {
         GC_EXIT();
+        #if MICROPY_GC_LOG
+        gc_dump_info();
+        printf("GC due to high heap utilization: " UINT_FMT " >= " UINT_FMT "\n",
+            MP_STATE_MEM(gc_alloc_amount), MP_STATE_MEM(gc_alloc_threshold));
+        #endif // MICROPY_GC_LOG
         gc_collect();
+        #if MICROPY_GC_LOG
+        gc_dump_info();
+        #endif // MICROPY_GC_LOG
         collected = 1;
         GC_ENTER();
     }
@@ -504,10 +512,21 @@ void *gc_alloc(size_t n_bytes, unsigned int alloc_flags) {
         GC_EXIT();
         // nothing found!
         if (collected) {
+            #if MICROPY_GC_LOG
+            printf("OOM: cannot allocate " UINT_FMT " bytes after GC\n", n_bytes);
+            gc_dump_info();
+            #endif // MICROPY_GC_LOG
             return NULL;
         }
         DEBUG_printf("gc_alloc(" UINT_FMT "): no free mem, triggering GC\n", n_bytes);
+        #if MICROPY_GC_LOG
+        gc_dump_info();
+        printf("GC due to failed allocation: " UINT_FMT " bytes\n", n_bytes);
+        #endif // MICROPY_GC_LOG
         gc_collect();
+        #if MICROPY_GC_LOG
+        gc_dump_info();
+        #endif // MICROPY_GC_LOG
         collected = 1;
         GC_ENTER();
     }
