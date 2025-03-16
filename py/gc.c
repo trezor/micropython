@@ -455,6 +455,15 @@ void gc_info(gc_info_t *info) {
     GC_EXIT();
 }
 
+#if MICROPY_OOM_CALLBACK
+static gc_oom_callback_t gc_oom_callback = NULL;
+
+void gc_set_oom_callback(gc_oom_callback_t func)
+{
+    gc_oom_callback = func;
+}
+#endif
+
 void *gc_alloc(size_t n_bytes, unsigned int alloc_flags) {
     bool has_finaliser = alloc_flags & GC_ALLOC_FLAG_HAS_FINALISER;
     size_t n_blocks = ((n_bytes + BYTES_PER_BLOCK - 1) & (~(BYTES_PER_BLOCK - 1))) / BYTES_PER_BLOCK;
@@ -504,6 +513,11 @@ void *gc_alloc(size_t n_bytes, unsigned int alloc_flags) {
         GC_EXIT();
         // nothing found!
         if (collected) {
+            #if MICROPY_OOM_CALLBACK
+            if (gc_oom_callback) {
+                gc_oom_callback();
+            }
+            #endif
             return NULL;
         }
         DEBUG_printf("gc_alloc(" UINT_FMT "): no free mem, triggering GC\n", n_bytes);
