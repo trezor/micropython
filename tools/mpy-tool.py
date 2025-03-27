@@ -1743,6 +1743,7 @@ def main():
         "-d", "--disassemble", action="store_true", help="output disassembled contents of files"
     )
     cmd_parser.add_argument("-f", "--freeze", action="store_true", help="freeze files")
+    cmd_parser.add_argument("--skip-freeze", nargs="*", default=(), help="skip this file from freezing (but collect its qstrs)")
     cmd_parser.add_argument(
         "--merge", action="store_true", help="merge multiple .mpy files into one"
     )
@@ -1803,6 +1804,11 @@ def main():
 
     if args.freeze:
         try:
+            skip_freeze = set(args.skip_freeze)
+            compiled_modules = [
+                cm for cm in compiled_modules
+                if cm.source_file.str not in skip_freeze
+            ]
             freeze_mpy(base_qstrs, compiled_modules)
         except FreezeError as er:
             print(er, file=sys.stderr)
