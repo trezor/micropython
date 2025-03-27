@@ -98,6 +98,7 @@ void mp_map_init(mp_map_t *map, size_t n) {
     map->all_keys_are_qstrs = 1;
     map->is_fixed = 0;
     map->is_ordered = 0;
+    map->no_realloc = 0;
 }
 
 void mp_map_init_fixed_table(mp_map_t *map, size_t n, const mp_obj_t *table) {
@@ -106,6 +107,7 @@ void mp_map_init_fixed_table(mp_map_t *map, size_t n, const mp_obj_t *table) {
     map->all_keys_are_qstrs = 1;
     map->is_fixed = 1;
     map->is_ordered = 1;
+    map->no_realloc = 1;
     map->table = (mp_map_elem_t *)table;
 }
 
@@ -129,6 +131,9 @@ void mp_map_clear(mp_map_t *map) {
 }
 
 STATIC void mp_map_rehash(mp_map_t *map) {
+    if (map->no_realloc) {
+        mp_raise_msg(&mp_type_MemoryError, "Cannot reallocate map");
+    }
     size_t old_alloc = map->alloc;
     size_t new_alloc = get_hash_alloc_greater_or_equal_to(map->alloc + 1);
     DEBUG_printf("mp_map_rehash(%p): " UINT_FMT " -> " UINT_FMT "\n", map, old_alloc, new_alloc);

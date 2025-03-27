@@ -254,6 +254,7 @@ mp_obj_t mp_obj_dict_copy(mp_obj_t self_in) {
     other->map.all_keys_are_qstrs = self->map.all_keys_are_qstrs;
     other->map.is_fixed = 0;
     other->map.is_ordered = self->map.is_ordered;
+    other->map.no_realloc = self->map.no_realloc;
     memcpy(other->map.table, self->map.table, self->map.alloc * sizeof(mp_map_elem_t));
     return other_out;
 }
