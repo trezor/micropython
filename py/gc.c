@@ -371,9 +371,270 @@ void gc_collect_root(void **ptrs, size_t len) {
                 TRACE_MARK(block, ptr);
                 ATB_HEAD_TO_MARK(block);
                 gc_mark_subtree(block);
-            }
-        }
+      }
     }
+  }
+}
+
+extern const mp_obj_type_t mp_type_settrace_codeobj;
+extern const mp_obj_type_t mp_type_frame;
+
+static bool is_short(mp_const_obj_t value) {
+  return value == NULL || value == MP_OBJ_NULL || mp_obj_is_qstr(value) ||
+         mp_obj_is_small_int(value) || !VERIFY_PTR(value);
+}
+
+static void dump_short(FILE *out, mp_const_obj_t value) {
+  fflush(out);
+  if (value == NULL || value == MP_OBJ_NULL) {
+    fprintf(out, "<null>");
+  } else if (mp_obj_is_qstr(value)) {
+    mp_int_t q = MP_OBJ_QSTR_VALUE(value);
+    fprintf(out, "'%s'", qstr_str(q));
+  } else if (mp_obj_is_small_int(value)) {
+    static char num_buf[100];
+    snprintf(num_buf, 100, INT_FMT, MP_OBJ_SMALL_INT_VALUE(value));
+    fprintf(out, "%s", num_buf);
+  } else if (!VERIFY_PTR(value)) {
+    fprintf(out, "%p", value);
+  }
+}
+
+static void dump_short_or_ptr(FILE *out, mp_const_obj_t value) {
+  if (is_short(value))
+    dump_short(out, value);
+  else
+    fprintf(out, "%p", value);
+}
+
+static void dump_map(FILE *out, const mp_map_t *map) {
+  fprintf(out, "{");
+  bool first = true;
+  for (size_t i = 0; i < map->alloc; ++i) {
+    if (!mp_map_slot_is_filled(map, i)) continue;
+    if (!first) fprintf(out, ", ");
+    first = false;
+    dump_short_or_ptr(out, map->table[i].key);
+    fprintf(out, ": ");
+    dump_short_or_ptr(out, map->table[i].value);
+  }
+  fprintf(out, "}");
+}
+
+static void dump_dict(FILE *out, const mp_obj_dict_t *dict) {
+  dump_map(out, &dict->map);
+}
+
+void block_type(FILE *out, void *block_ptr) {
+  void **ptr = (void **)block_ptr;
+
+  if (*ptr == &mp_type_type) {
+    mp_obj_type_t *type = block_ptr;
+    fprintf(out, "type %s", qstr_str(type->name));
+    return;
+  }
+  if (*ptr == &mp_type_object) {
+    fprintf(out, "object");
+    return;
+  }
+  if (*ptr == &mp_type_NoneType) {
+    fprintf(out, "NoneType");
+    return;
+  }
+  if (*ptr == &mp_type_bool) {
+    fprintf(out, "bool");
+    return;
+  }
+  if (*ptr == &mp_type_int) {
+    fprintf(out, "int");
+    return;
+  }
+  if (*ptr == &mp_type_str) {
+    fprintf(out, "str");
+    return;
+  }
+  if (*ptr == &mp_type_bytes) {
+    fprintf(out, "bytes");
+    return;
+  }
+  if (*ptr == &mp_type_bytearray) {
+    fprintf(out, "bytearray");
+    return;
+  }
+  if (*ptr == &mp_type_float) {
+    fprintf(out, "float");
+    return;
+  }
+  if (*ptr == &mp_type_complex) {
+    fprintf(out, "complex");
+    return;
+  }
+  if (*ptr == &mp_type_tuple) {
+    fprintf(out, "tuple");
+    return;
+  }
+  if (*ptr == &mp_type_list) {
+    fprintf(out, "list");
+    return;
+  }
+  if (*ptr == &mp_type_map) {
+    fprintf(out, "map");
+    return;
+  }
+  if (*ptr == &mp_type_enumerate) {
+    fprintf(out, "enumerate");
+    return;
+  }
+  if (*ptr == &mp_type_filter) {
+    fprintf(out, "filter");
+    return;
+  }
+  if (*ptr == &mp_type_dict) {
+    fprintf(out, "dict ");
+    dump_dict(out, block_ptr);
+    return;
+  }
+  if (*ptr == &mp_type_range) {
+    fprintf(out, "range");
+    return;
+  }
+  if (*ptr == &mp_type_set) {
+    fprintf(out, "set");
+    return;
+  }
+  if (*ptr == &mp_type_slice) {
+    fprintf(out, "slice");
+    return;
+  }
+  if (*ptr == &mp_type_zip) {
+    fprintf(out, "zip");
+    return;
+  }
+  if (*ptr == &mp_type_super) {
+    fprintf(out, "super");
+    return;
+  }
+  if (*ptr == &mp_type_gen_wrap) {
+    fprintf(out, "gen_wrap");
+    return;
+  }
+  if (*ptr == &mp_type_gen_instance) {
+    fprintf(out, "gen_instance");
+    return;
+  }
+  if (*ptr == &mp_type_fun_builtin_0) {
+    fprintf(out, "fun_builtin_0");
+    return;
+  }
+  if (*ptr == &mp_type_fun_builtin_1) {
+    fprintf(out, "fun_builtin_1");
+    return;
+  }
+  if (*ptr == &mp_type_fun_builtin_2) {
+    fprintf(out, "fun_builtin_2");
+    return;
+  }
+  if (*ptr == &mp_type_fun_builtin_3) {
+    fprintf(out, "fun_builtin_3");
+    return;
+  }
+  if (*ptr == &mp_type_fun_builtin_var) {
+    fprintf(out, "fun_builtin_var");
+    return;
+  }
+  if (*ptr == &mp_type_fun_bc) {
+    fprintf(out, "fun_bc");
+    return;
+  }
+  if (*ptr == &mp_type_module) {
+    fprintf(out, "module ");
+    mp_obj_module_t *module = block_ptr;
+    dump_dict(out, module->globals);
+    return;
+  }
+  if (*ptr == &mp_type_staticmethod) {
+    fprintf(out, "staticmethod");
+    return;
+  }
+  if (*ptr == &mp_type_classmethod) {
+    fprintf(out, "classmethod");
+    return;
+  }
+  if (*ptr == &mp_type_property) {
+    fprintf(out, "property");
+    return;
+  }
+  if (*ptr == &mp_type_reversed) {
+    fprintf(out, "reversed");
+    return;
+  }
+  if (*ptr == &mp_type_polymorph_iter) {
+    fprintf(out, "polymorph_iter");
+    return;
+  }
+  if (*ptr == &mp_type_staticmethod) {
+    fprintf(out, "staticmethod");
+    return;
+  }
+  if (*ptr == &mp_type_object) {
+    fprintf(out, "object");
+    return;
+  }
+  // This code prints "Q" for qstr-pool data, and "q" for qstr-str
+  // data.  It can be useful to see how qstrs are being allocated,
+  // but is disabled by default because it is very slow.
+  for (const qstr_pool_t *pool = MP_STATE_VM(last_pool); pool != NULL;
+       pool = pool->prev) {
+    if ((const qstr_pool_t *)ptr == pool) {
+      fprintf(out, "Qpool");
+      return;
+    }
+    for (const char *const *q = pool->qstrs, *const *q_top =
+                                                 pool->qstrs + pool->len;
+         q < q_top; q++) {
+      if ((const char *)ptr == *q) {
+        fprintf(out, "Qstr");
+        return;
+      }
+    }
+  }
+  fprintf(out, "<%p>", *ptr);
+}
+
+typedef void (*log_value_func)(FILE *out, mp_const_obj_t obj);
+
+log_value_func gc_logger = NULL;
+
+void log_roots(FILE *out, void **ptrs, size_t len, size_t prev) {
+  for (size_t i = 0; i < len; i++) {
+    void *ptr = gc_get_ptr(ptrs, i);
+    if (VERIFY_PTR(ptr)) {
+      size_t block = BLOCK_FROM_PTR(ptr);
+      int kind = ATB_GET_KIND(block);
+      if (kind == AT_FREE || kind == AT_TAIL) {
+        continue;
+      }
+      size_t n_blocks = 0;
+      do {
+        n_blocks += 1;
+      } while (ATB_GET_KIND(block + n_blocks) == AT_TAIL);
+      if (gc_logger) {
+        gc_logger(out, ptr);
+      } else {
+        fprintf(out, UINT_FMT "\t" UINT_FMT "\t" UINT_FMT "\t%p\t@ %p + " UINT_FMT "\t= %p\t", prev, block,
+                n_blocks, ptr, ptrs, i, ptrs + i);
+        block_type(out, ptr);
+        fprintf(out, "\n");
+      }
+
+      fflush(out);
+      if (kind == AT_HEAD) {
+        ATB_HEAD_TO_MARK(block);
+        log_roots(out, (void **)ptr,
+                  n_blocks * BYTES_PER_BLOCK / sizeof(void *), block);
+      }
+    }
+  }
 }
 
 void gc_collect_end(void) {

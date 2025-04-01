@@ -180,4 +180,16 @@ MP_NOINLINE void gc_helper_collect_regs_and_stack(void) {
     gc_collect_root(regs_ptr, ((uintptr_t)MP_STATE_THREAD(stack_top) - (uintptr_t)&regs) / sizeof(uintptr_t));
 }
 
+void log_roots(FILE *out, void **ptrs, size_t len, size_t prev);
+
+MP_NOINLINE void log_roots_from_regs(FILE *out) {
+    gc_helper_regs_t regs;
+    gc_helper_get_regs(regs);
+    // GC stack (and regs because we captured them)
+    void **regs_ptr = (void **)(void *)&regs;
+    size_t count = ((uintptr_t)MP_STATE_THREAD(stack_top) - (uintptr_t)&regs) / sizeof(uintptr_t);
+    log_roots(out, regs_ptr, count, 0);
+    fprintf(stderr, "scanned stack [%p, %p) count=" UINT_FMT  "\n", regs_ptr, MP_STATE_THREAD(stack_top), count);
+}
+
 #endif // MICROPY_ENABLE_GC
