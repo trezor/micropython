@@ -137,7 +137,7 @@ STATIC void mp_map_rehash(mp_map_t *map) {
 void mp_map_presize(mp_map_t *map, size_t new_alloc) {
     size_t old_alloc = map->alloc;
     if (new_alloc < old_alloc) {
-        mp_raise_msg_varg(&mp_type_ValueError, "Map capacity (" UINT_FMT ") must not decrease: " UINT_FMT, old_alloc, new_alloc);
+        mp_raise_msg_varg(&mp_type_ValueError, MP_ERROR_TEXT("Map capacity (%d) must not decrease: %d"), old_alloc, new_alloc);
     }
     mp_map_elem_t *old_table = map->table;
     mp_map_elem_t *new_table = m_new0(mp_map_elem_t, new_alloc);
