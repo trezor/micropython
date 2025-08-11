@@ -570,66 +570,7 @@ void mp_obj_exception_clear_traceback(mp_obj_t self_in) {
 }
 
 void mp_obj_exception_add_traceback(mp_obj_t self_in, qstr file, size_t line, qstr block) {
-    mp_obj_exception_t *self = get_native_exception(self_in);
-
-    // append this traceback info to traceback data
-    // if memory allocation fails (eg because gc is locked), just return
-
-    #if MICROPY_PY_SYS_TRACEBACKLIMIT
-    mp_int_t max_traceback = MP_OBJ_SMALL_INT_VALUE(MP_STATE_VM(sys_mutable[MP_SYS_MUTABLE_TRACEBACKLIMIT]));
-    if (max_traceback <= 0) {
-        return;
-    } else if (self->traceback_data != NULL && self->traceback_len >= max_traceback * TRACEBACK_ENTRY_LEN) {
-        self->traceback_len -= TRACEBACK_ENTRY_LEN;
-        memmove(self->traceback_data, self->traceback_data + TRACEBACK_ENTRY_LEN, self->traceback_len * sizeof(self->traceback_data[0]));
-    }
-    #endif
-
-    if (self->traceback_data == NULL) {
-        self->traceback_data = m_new_maybe(size_t, TRACEBACK_ENTRY_LEN);
-        if (self->traceback_data == NULL) {
-            #if MICROPY_ENABLE_EMERGENCY_EXCEPTION_BUF
-            if (mp_emergency_exception_buf_size >= (mp_int_t)(EMG_BUF_TRACEBACK_OFFSET + EMG_BUF_TRACEBACK_SIZE)) {
-                // There is room in the emergency buffer for traceback data
-                size_t *tb = (size_t *)((uint8_t *)MP_STATE_VM(mp_emergency_exception_buf)
-                    + EMG_BUF_TRACEBACK_OFFSET);
-                self->traceback_data = tb;
-                self->traceback_alloc = EMG_BUF_TRACEBACK_SIZE / sizeof(size_t);
-            } else {
-                // Can't allocate and no room in emergency buffer
-                return;
-            }
-            #else
-            // Can't allocate
-            return;
-            #endif
-        } else {
-            // Allocated the traceback data on the heap
-            self->traceback_alloc = TRACEBACK_ENTRY_LEN;
-        }
-        self->traceback_len = 0;
-    } else if (self->traceback_len + TRACEBACK_ENTRY_LEN > self->traceback_alloc) {
-        #if MICROPY_ENABLE_EMERGENCY_EXCEPTION_BUF
-        if (self->traceback_data == (size_t *)MP_STATE_VM(mp_emergency_exception_buf)) {
-            // Can't resize the emergency buffer
-            return;
-        }
-        #endif
-        // be conservative with growing traceback data
-        size_t *tb_data = m_renew_maybe(size_t, self->traceback_data, self->traceback_alloc,
-            self->traceback_alloc + TRACEBACK_ENTRY_LEN, true);
-        if (tb_data == NULL) {
-            return;
-        }
-        self->traceback_data = tb_data;
-        self->traceback_alloc += TRACEBACK_ENTRY_LEN;
-    }
-
-    size_t *tb_data = &self->traceback_data[self->traceback_len];
-    self->traceback_len += TRACEBACK_ENTRY_LEN;
-    tb_data[0] = file;
-    tb_data[1] = line;
-    tb_data[2] = block;
+    return;
 }
 
 void mp_obj_exception_get_traceback(mp_obj_t self_in, size_t *n, size_t **values) {
