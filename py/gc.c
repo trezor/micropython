@@ -209,6 +209,8 @@ bool gc_is_locked(void) {
 #endif
 #endif
 
+bool gc_collect_debug = false;
+
 // Take the given block as the topmost block on the stack. Check all it's
 // children: mark the unmarked child blocks and put those newly marked
 // blocks on the stack. When all children have been checked, pop off the
@@ -224,6 +226,10 @@ STATIC void gc_mark_subtree(size_t block) {
             n_blocks += 1;
         } while (ATB_GET_KIND(block + n_blocks) == AT_TAIL);
 
+        if (gc_collect_debug) {
+            printf("collect: block=" UINT_FMT " bytes=" UINT_FMT "\n", block, n_blocks * BYTES_PER_BLOCK);
+        }
+
         // check this block's children
         void **ptrs = (void **)PTR_FROM_BLOCK(block);
         for (size_t i = n_blocks * BYTES_PER_BLOCK / sizeof(void *); i > 0; i--, ptrs++) {
@@ -233,12 +239,18 @@ STATIC void gc_mark_subtree(size_t block) {
                 // Mark and push this pointer
                 size_t childblock = BLOCK_FROM_PTR(ptr);
                 if (ATB_GET_KIND(childblock) == AT_HEAD) {
+                    if (gc_collect_debug) {
+                        printf("collect: parent=" UINT_FMT " child=" UINT_FMT " i=" UINT_FMT " ptr=%p\n", block, childblock, i, ptr);
+                    }
                     // an unmarked head, mark it, and push it on gc stack
                     TRACE_MARK(childblock, ptr);
                     ATB_HEAD_TO_MARK(childblock);
                     if (sp < MICROPY_ALLOC_GC_STACK_SIZE) {
                         MP_STATE_MEM(gc_stack)[sp++] = childblock;
                     } else {
+                        if (gc_collect_debug) {
+                            printf("collect: gc_stack_overflow: " UINT_FMT "\n", sp);
+                        }
                         MP_STATE_MEM(gc_stack_overflow) = 1;
                     }
                 }
@@ -341,6 +353,9 @@ void gc_collect_start(void) {
     void **ptrs = (void **)(void *)&mp_state_ctx;
     size_t root_start = offsetof(mp_state_ctx_t, thread.dict_locals);
     size_t root_end = offsetof(mp_state_ctx_t, vm.qstr_last_chunk);
+    if (gc_collect_debug) {
+        printf("collect: mp_state=%p start=" UINT_FMT " end=" UINT_FMT "\n", ptrs, root_start, root_end);
+    }
     gc_collect_root(ptrs + root_start / sizeof(void *), (root_end - root_start) / sizeof(void *));
 
     #if MICROPY_ENABLE_PYSTACK
@@ -366,6 +381,9 @@ void gc_collect_root(void **ptrs, size_t len) {
         void *ptr = gc_get_ptr(ptrs, i);
         if (VERIFY_PTR(ptr)) {
             size_t block = BLOCK_FROM_PTR(ptr);
+            if (gc_collect_debug) {
+                printf("collect: root=%p i=" UINT_FMT " block=" UINT_FMT "\n", ptrs, i, block);
+            }
             if (ATB_GET_KIND(block) == AT_HEAD) {
                 // An unmarked head: mark it, and mark all its children
                 TRACE_MARK(block, ptr);
@@ -467,7 +485,6 @@ void gc_set_oom_callback(gc_oom_callback_t func)
 void *gc_alloc(size_t n_bytes, unsigned int alloc_flags) {
     bool has_finaliser = alloc_flags & GC_ALLOC_FLAG_HAS_FINALISER;
     size_t n_blocks = ((n_bytes + BYTES_PER_BLOCK - 1) & (~(BYTES_PER_BLOCK - 1))) / BYTES_PER_BLOCK;
-    DEBUG_printf("gc_alloc(" UINT_FMT " bytes -> " UINT_FMT " blocks)\n", n_bytes, n_blocks);
 
     // check for 0 allocation
     if (n_blocks == 0) {
@@ -531,6 +548,10 @@ found:
     // get starting and end blocks, both inclusive
     end_block = i;
     start_block = i - n_free + 1;
+    if (n_bytes > 800) {
+        printf("gc_alloc(" UINT_FMT ") -> " UINT_FMT " bytes @ block " UINT_FMT "\n",
+            n_bytes, n_blocks * BYTES_PER_BLOCK, start_block);
+    }
 
     // Set last free ATB index to block after last block we found, for start of
     // next scan.  To reduce fragmentation, we only do this if we were looking
