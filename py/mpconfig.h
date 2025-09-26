@@ -1411,7 +1411,7 @@ typedef double mp_float_t;
 // Whether the sys module supports attribute delegation
 // This is enabled automatically when needed by other features
 #ifndef MICROPY_PY_SYS_ATTR_DELEGATION
-#define MICROPY_PY_SYS_ATTR_DELEGATION (MICROPY_PY_SYS_PS1_PS2 || MICROPY_PY_SYS_TRACEBACKLIMIT)
+#define MICROPY_PY_SYS_ATTR_DELEGATION (MICROPY_PY_SYS_PS1_PS2 || MICROPY_PY_SYS_TRACEBACKLIMIT || MICROPY_MULTI_INSTANCE)
 #endif
 
 // Whether to provide "uerrno" module
@@ -1921,6 +1921,10 @@ typedef double mp_float_t;
 #if MICROPY_COMP_CONST
 #error "MICROPY_PY_SYS_SETTRACE requires MICROPY_COMP_CONST to be disabled"
 #endif
+#endif
+
+#ifndef MICROPY_MULTI_INSTANCE
+#define MICROPY_MULTI_INSTANCE 0
 #endif
 
 #endif // MICROPY_INCLUDED_PY_MPCONFIG_H

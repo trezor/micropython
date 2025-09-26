@@ -30,4 +30,15 @@
 mp_dynamic_compiler_t mp_dynamic_compiler = {0};
 #endif
 
+#if MICROPY_MULTI_INSTANCE
+MP_THREAD_LOCAL mp_state_ctx_t *mp_state_ctx_ptr;
+#else
 mp_state_ctx_t mp_state_ctx;
+#endif
+
+
+#if MICROPY_MULTI_INSTANCE
+void mp_state_init(mp_state_ctx_t *state) {
+    mp_state_ctx_ptr = state;
+}
+#endif

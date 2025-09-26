@@ -28,7 +28,7 @@ def find_module_registrations(filename):
         return set(re.findall(pattern, c_file_obj.read()))
 
 
-def generate_module_table_header(modules):
+def generate_module_table_header(modules, multi_instance):
     """Generate header with module table entries for builtin modules.
 
     :param List[(module_name, obj_module)] modules: module defs
@@ -49,12 +49,20 @@ def generate_module_table_header(modules):
                 file=sys.stderr,
             )
             sys.exit(1)
+
+
+        if multi_instance and obj_module == "mp_module___main__":
+            modifier = ""
+        else:
+            modifier = "const "
+
         print(
             (
-                "extern const struct _mp_obj_module_t {obj_module};\n"
+                "extern {modifier}struct _mp_obj_module_t {obj_module};\n"
                 "#undef {mod_def}\n"
                 "#define {mod_def} {{ MP_ROM_QSTR({module_name}), MP_ROM_PTR(&{obj_module}) }},\n"
             ).format(
+                modifier=modifier,
                 module_name=module_name,
                 obj_module=obj_module,
                 mod_def=mod_def,
@@ -72,10 +80,11 @@ def generate_module_table_header(modules):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("file", nargs=1, help="file with MP_REGISTER_MODULE definitions")
+    parser.add_argument('--multi-instance', action='store_true', help="enable multi instance mode")
     args = parser.parse_args()
 
     modules = find_module_registrations(args.file[0])
-    generate_module_table_header(sorted(modules))
+    generate_module_table_header(sorted(modules), args.multi_instance)
 
 
 if __name__ == "__main__":

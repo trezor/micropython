@@ -90,4 +90,8 @@ uint64_t mp_hal_time_ns(void);
 #include "extmod/virtpin.h"
 #endif
 
+#ifndef MP_THREAD_LOCAL
+#define MP_THREAD_LOCAL
+#endif
+
 #endif // MICROPY_INCLUDED_PY_MPHAL_H

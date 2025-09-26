@@ -120,7 +120,11 @@ MP_DECLARE_CONST_FUN_OBJ_2(mp_op_getitem_obj);
 MP_DECLARE_CONST_FUN_OBJ_3(mp_op_setitem_obj);
 MP_DECLARE_CONST_FUN_OBJ_2(mp_op_delitem_obj);
 
+#if MICROPY_MULTI_INSTANCE
+extern mp_obj_module_t mp_module___main__;
+#else
 extern const mp_obj_module_t mp_module___main__;
+#endif
 extern const mp_obj_module_t mp_module_builtins;
 extern const mp_obj_module_t mp_module_uarray;
 extern const mp_obj_module_t mp_module_collections;

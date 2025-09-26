@@ -53,7 +53,7 @@ typedef struct _mp_obj_utimeq_t {
     struct qentry items[];
 } mp_obj_utimeq_t;
 
-STATIC mp_uint_t utimeq_id;
+STATIC MP_THREAD_LOCAL mp_uint_t utimeq_id;
 
 STATIC mp_obj_utimeq_t *utimeq_get_heap(mp_obj_t heap_in) {
     return MP_OBJ_TO_PTR(heap_in);

@@ -54,15 +54,24 @@
 #define DEBUG_OP_printf(...) (void)0
 #endif
 
+#if MICROPY_MULTI_INSTANCE
+MP_THREAD_LOCAL mp_obj_module_t mp_module___main__;
+#else
 const mp_obj_module_t mp_module___main__ = {
     .base = { &mp_type_module },
     .globals = (mp_obj_dict_t *)&MP_STATE_VM(dict_main),
 };
+#endif
 
 MP_REGISTER_MODULE(MP_QSTR___main__, mp_module___main__);
 
 void mp_init(void) {
     qstr_init();
+
+    #if MICROPY_MULTI_INSTANCE
+    mp_module___main__.base = (mp_obj_base_t) { &mp_type_module };
+    mp_module___main__.globals = (mp_obj_dict_t *)&MP_STATE_VM(dict_main);
+    #endif
 
     // no pending exceptions to start with
     MP_STATE_THREAD(mp_pending_exception) = MP_OBJ_NULL;

@@ -43,11 +43,11 @@
 #include "shared/runtime/pyexec.h"
 #include "genhdr/mpversion.h"
 
-pyexec_mode_kind_t pyexec_mode_kind = PYEXEC_MODE_FRIENDLY_REPL;
-int pyexec_system_exit = 0;
+MP_THREAD_LOCAL pyexec_mode_kind_t pyexec_mode_kind = PYEXEC_MODE_FRIENDLY_REPL;
+MP_THREAD_LOCAL int pyexec_system_exit = 0;
 
 #if MICROPY_REPL_INFO
-STATIC bool repl_display_debugging_info = 0;
+MP_THREAD_LOCAL STATIC bool repl_display_debugging_info = 0;
 #endif
 
 #define EXEC_FLAG_PRINT_EOF             (1 << 0)

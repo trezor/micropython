@@ -204,6 +204,22 @@ STATIC const uint16_t sys_mutable_keys[] = {
 STATIC void mp_module_sys_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest) {
     MP_STATIC_ASSERT(MP_ARRAY_SIZE(sys_mutable_keys) == MP_SYS_MUTABLE_NUM + 1);
     MP_STATIC_ASSERT(MP_ARRAY_SIZE(MP_STATE_VM(sys_mutable)) == MP_SYS_MUTABLE_NUM);
+
+#if MICROPY_MULTI_INSTANCE
+    if (dest[0] == MP_OBJ_NULL) {
+        if(attr == MP_QSTR_path) {
+            dest[0] = MP_OBJ_FROM_PTR(&MP_STATE_VM(mp_sys_path_obj));
+            return;
+        } else if(attr == MP_QSTR_argv) {
+            dest[0] = MP_OBJ_FROM_PTR(&MP_STATE_VM(mp_sys_argv_obj));
+            return;
+        } else if(attr == MP_QSTR_modules) {
+            dest[0] = MP_OBJ_FROM_PTR(&MP_STATE_VM(mp_loaded_modules_dict));
+            return;
+        }
+    }
+#endif
+
     mp_module_generic_attr(attr, dest, sys_mutable_keys, MP_STATE_VM(sys_mutable));
 }
 #endif
@@ -211,8 +227,10 @@ STATIC void mp_module_sys_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest) {
 STATIC const mp_rom_map_elem_t mp_module_sys_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_sys) },
 
+    #if !MICROPY_MULTI_INSTANCE
     { MP_ROM_QSTR(MP_QSTR_path), MP_ROM_PTR(&MP_STATE_VM(mp_sys_path_obj)) },
     { MP_ROM_QSTR(MP_QSTR_argv), MP_ROM_PTR(&MP_STATE_VM(mp_sys_argv_obj)) },
+    #endif
     { MP_ROM_QSTR(MP_QSTR_version), MP_ROM_PTR(&mp_sys_version_obj) },
     { MP_ROM_QSTR(MP_QSTR_version_info), MP_ROM_PTR(&mp_sys_version_info_obj) },
     { MP_ROM_QSTR(MP_QSTR_implementation), MP_ROM_PTR(&mp_sys_implementation_obj) },
@@ -253,7 +271,9 @@ STATIC const mp_rom_map_elem_t mp_module_sys_globals_table[] = {
     #endif
 
     #if MICROPY_PY_SYS_MODULES
+    #if !MICROPY_MULTI_INSTANCE
     { MP_ROM_QSTR(MP_QSTR_modules), MP_ROM_PTR(&MP_STATE_VM(mp_loaded_modules_dict)) },
+    #endif
     #endif
     #if MICROPY_PY_SYS_EXC_INFO
     { MP_ROM_QSTR(MP_QSTR_exc_info), MP_ROM_PTR(&mp_sys_exc_info_obj) },
