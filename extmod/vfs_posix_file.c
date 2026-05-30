@@ -30,7 +30,10 @@
 #include "py/stream.h"
 #include "extmod/vfs_posix.h"
 
-#if MICROPY_VFS_POSIX
+// trezor: keep honouring MICROPY_VFS_POSIX_FILE so the posix file object
+// (used by the unix emulator's stdio) is available without enabling the full
+// VFS subsystem. Upstream narrowed this guard to MICROPY_VFS_POSIX only.
+#if MICROPY_VFS_POSIX || MICROPY_VFS_POSIX_FILE
 
 #include <fcntl.h>
 #include <unistd.h>
