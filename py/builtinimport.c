@@ -239,6 +239,7 @@ static void do_load(mp_module_context_t *module_obj, vstr_t *file) {
     #endif // MICROPY_MODULE_FROZEN
 
     qstr file_qstr = qstr_from_str(file_str);
+    (void)file_qstr; // may be unused depending on enabled features (trezor)
 
     // If we support loading .mpy files then check if the file extension is of
     // the correct format and, if so, load and execute the file.
