@@ -203,7 +203,16 @@ mp_obj_t mp_module_get_builtin(qstr module_name, bool extensible) {
         if (module_name_str[0] != 'u') {
             return MP_OBJ_NULL;
         }
-        elem = mp_map_lookup((mp_map_t *)&mp_builtin_extensible_module_map, MP_OBJ_NEW_QSTR(qstr_from_strn(module_name_str + 1, module_name_len - 1)), MP_MAP_LOOKUP);
+        // trezor: use qstr_find_strn (not qstr_from_strn) to avoid interning a
+        // new qstr at runtime for the u-stripped name. A registered extensible
+        // module's name is always an interned qstr, so if the stripped name is
+        // not found there is no matching built-in anyway (e.g. `usb` -> `sb`).
+        // This preserves trezor's "no runtime QSTR allocation" heap invariant.
+        qstr stripped_name = qstr_find_strn(module_name_str + 1, module_name_len - 1);
+        if (stripped_name == MP_QSTRnull) {
+            return MP_OBJ_NULL;
+        }
+        elem = mp_map_lookup((mp_map_t *)&mp_builtin_extensible_module_map, MP_OBJ_NEW_QSTR(stripped_name), MP_MAP_LOOKUP);
         if (!elem) {
             return MP_OBJ_NULL;
         }
