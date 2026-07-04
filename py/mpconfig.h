@@ -1306,6 +1306,10 @@ typedef double mp_float_t;
 #define MICROPY_PY_GC_COLLECT_RETVAL (0)
 #endif
 
+#ifndef MICROPY_PY_GC_STATS
+#define MICROPY_PY_GC_STATS (0)
+#endif
+
 // Whether to provide "io" module
 #ifndef MICROPY_PY_IO
 #define MICROPY_PY_IO (MICROPY_CONFIG_ROM_LEVEL_AT_LEAST_CORE_FEATURES)

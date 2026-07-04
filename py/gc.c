@@ -274,6 +274,9 @@ STATIC void gc_sweep(void) {
     #if MICROPY_PY_GC_COLLECT_RETVAL
     MP_STATE_MEM(gc_collected) = 0;
     #endif
+    #if MICROPY_PY_GC_STATS
+    size_t used_blocks = 0;
+    #endif
     // free unmarked heads and their tails
     int free_tail = 0;
     for (size_t block = 0; block < MP_STATE_MEM(gc_alloc_table_byte_len) * BLOCKS_PER_ATB; block++) {
@@ -316,15 +319,32 @@ STATIC void gc_sweep(void) {
                     #if CLEAR_ON_SWEEP
                     memset((void *)PTR_FROM_BLOCK(block), 0, BYTES_PER_BLOCK);
                     #endif
+                } else {
+                    #if MICROPY_PY_GC_STATS
+                    used_blocks += 1;
+                    #endif
                 }
                 break;
 
             case AT_MARK:
                 ATB_MARK_TO_HEAD(block);
                 free_tail = 0;
+                #if MICROPY_PY_GC_STATS
+                used_blocks += 1;
+                #endif
                 break;
         }
     }
+    #if MICROPY_PY_GC_STATS
+    if (MP_STATE_MEM(gc_count) == 0) {
+        MP_STATE_MEM(gc_used_blocks_max) = used_blocks;
+        MP_STATE_MEM(gc_used_blocks_min) = used_blocks;
+    } else {
+        MP_STATE_MEM(gc_used_blocks_max) = MAX(MP_STATE_MEM(gc_used_blocks_max), used_blocks);
+        MP_STATE_MEM(gc_used_blocks_min) = MIN(MP_STATE_MEM(gc_used_blocks_min), used_blocks);
+    }
+    MP_STATE_MEM(gc_count) += 1;
+    #endif
 }
 
 void gc_collect_start(void) {

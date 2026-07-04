@@ -106,6 +106,14 @@ typedef struct _mp_state_mem_t {
     size_t gc_collected;
     #endif
 
+    #if MICROPY_PY_GC_STATS
+    // How many times GC was run.
+    size_t gc_count;
+    // Measured after GC - keeping min/max metrics.
+    size_t gc_used_blocks_max;
+    size_t gc_used_blocks_min;
+    #endif
+
     #if MICROPY_PY_THREAD && !MICROPY_PY_THREAD_GIL
     // This is a global mutex used to make the GC thread-safe.
     mp_thread_mutex_t gc_mutex;
