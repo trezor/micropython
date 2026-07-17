@@ -1115,7 +1115,8 @@ bool mp_obj_is_exception_instance(mp_obj_t self_in);
 bool mp_obj_exception_match(mp_obj_t exc, mp_const_obj_t exc_type);
 void mp_obj_exception_clear_traceback(mp_obj_t self_in);
 #if MICROPY_PY_SYS_TRACEBACK_DISABLE
-static inline void mp_obj_exception_add_traceback(mp_obj_t self_in, qstr file, size_t line, qstr block) {}
+static inline void mp_obj_exception_add_traceback(mp_obj_t self_in, qstr file, size_t line, qstr block) {
+}
 #else
 void mp_obj_exception_add_traceback(mp_obj_t self_in, qstr file, size_t line, qstr block);
 #endif
