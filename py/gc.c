@@ -851,8 +851,7 @@ void gc_weakref_mark(void *ptr) {
 #if MICROPY_OOM_CALLBACK
 static gc_oom_callback_t gc_oom_callback = NULL;
 
-void gc_set_oom_callback(gc_oom_callback_t func)
-{
+void gc_set_oom_callback(gc_oom_callback_t func) {
     gc_oom_callback = func;
 }
 #endif
