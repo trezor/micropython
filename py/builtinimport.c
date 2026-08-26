@@ -37,12 +37,22 @@
 #include "py/builtin.h"
 #include "py/frozenmod.h"
 
+#if MICROPY_VFS
+#include "extmod/vfs.h"
+#endif
+
 #if MICROPY_DEBUG_VERBOSE // print debugging info
 #define DEBUG_PRINT (1)
 #define DEBUG_printf DEBUG_printf
 #else // don't print debugging info
 #define DEBUG_PRINT (0)
 #define DEBUG_printf(...) (void)0
+#endif
+
+#if MICROPY_VFS
+MP_WEAK mp_import_stat_t mp_import_stat(const char *path) {
+    return mp_vfs_import_stat(path);
+}
 #endif
 
 #if MICROPY_ENABLE_EXTERNAL_IMPORT
@@ -53,8 +63,8 @@
 // Virtual sys.path entry that maps to the frozen modules.
 #define MP_FROZEN_PATH_PREFIX ".frozen/"
 
-// Wrapper for mp_import_stat (which is provided by the port, and typically
-// uses mp_vfs_import_stat) to also search frozen modules. Given an exact
+// Wrapper for mp_import_stat (which may be overridden by the port) to also
+// search frozen modules. Given an exact
 // path to a file or directory (e.g. "foo/bar", foo/bar.py" or "foo/bar.mpy"),
 // will return whether the path is a file, directory, or doesn't exist.
 static mp_import_stat_t stat_path(vstr_t *path) {

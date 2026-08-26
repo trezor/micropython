@@ -34,35 +34,12 @@ typedef enum {
     MP_IMPORT_STAT_FILE,
 } mp_import_stat_t;
 
-#if MICROPY_VFS
-
-// Delegate to the VFS for import stat and builtin open.
-
-#define mp_builtin_open_obj mp_vfs_open_obj
-
-mp_import_stat_t mp_vfs_import_stat(const char *path);
-mp_obj_t mp_vfs_open(size_t n_args, const mp_obj_t *args, mp_map_t *kwargs);
-
-MP_DECLARE_CONST_FUN_OBJ_KW(mp_vfs_open_obj);
-
-static inline mp_import_stat_t mp_import_stat(const char *path) {
-    return mp_vfs_import_stat(path);
-}
-
-static inline mp_obj_t mp_builtin_open(size_t n_args, const mp_obj_t *args, mp_map_t *kwargs) {
-    return mp_vfs_open(n_args, args, kwargs);
-}
-
-#else
-
 // A port can provide implementations of these functions.
 mp_import_stat_t mp_import_stat(const char *path);
 mp_obj_t mp_builtin_open(size_t n_args, const mp_obj_t *args, mp_map_t *kwargs);
 
 // A port can provide this object.
 MP_DECLARE_CONST_FUN_OBJ_KW(mp_builtin_open_obj);
-
-#endif
 
 // A port can provide its own import handler by defining mp_builtin___import__.
 #ifndef mp_builtin___import__
