@@ -68,7 +68,6 @@ MP_DECLARE_CONST_FUN_OBJ_KW(mp_builtin_open_obj);
 #ifndef mp_builtin___import__
 #define mp_builtin___import__ mp_builtin___import___default
 #endif
-mp_obj_t mp_builtin___import__(size_t n_args, const mp_obj_t *args);
 mp_obj_t mp_builtin___import___default(size_t n_args, const mp_obj_t *args);
 
 mp_obj_t mp_micropython_mem_info(size_t n_args, const mp_obj_t *args);
@@ -130,15 +129,6 @@ MP_DECLARE_CONST_FUN_OBJ_VAR_BETWEEN(mp_sys_exit_obj);
 
 // Modules needed by the runtime.
 extern const mp_obj_dict_t mp_module_builtins_globals;
-extern const mp_obj_module_t mp_module___main__;
-extern const mp_obj_module_t mp_module_builtins;
-extern const mp_obj_module_t mp_module_sys;
-
-// Modules needed by the parser when MICROPY_COMP_MODULE_CONST is enabled.
-extern const mp_obj_module_t mp_module_errno;
-extern const mp_obj_module_t mp_module_uctypes;
-extern const mp_obj_module_t mp_module_machine;
-extern const mp_obj_module_t mp_module_math;
 
 extern const char MICROPY_PY_BUILTINS_HELP_TEXT[];
 

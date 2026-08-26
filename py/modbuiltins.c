@@ -34,6 +34,7 @@
 #include "py/runtime.h"
 #include "py/builtin.h"
 #include "py/stream.h"
+#include "py/objmodule.h"
 
 #if MICROPY_PY_BUILTINS_FLOAT
 #include <math.h>
