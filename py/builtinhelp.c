@@ -66,6 +66,12 @@ static void mp_help_add_from_map(mp_obj_t list, const mp_map_t *map) {
 }
 
 #if MICROPY_MODULE_FROZEN
+#if MICROPY_MODULE_FROZEN_MPY_COMPRESS_NAMES
+static void mp_help_add_from_frozen_name(const char *name, size_t len, void *context) {
+    // name should end in '.py' and we strip it off
+    mp_obj_list_append((mp_obj_t)MP_OBJ_FROM_PTR(context), mp_obj_new_str(name, len - 3));
+}
+#else
 static void mp_help_add_from_names(mp_obj_t list, const char *name) {
     while (*name) {
         size_t len = strlen(name);
@@ -74,6 +80,7 @@ static void mp_help_add_from_names(mp_obj_t list, const char *name) {
         name += len + 1;
     }
 }
+#endif
 #endif
 
 static void mp_help_print_modules(void) {
@@ -85,8 +92,12 @@ static void mp_help_print_modules(void) {
     #endif
 
     #if MICROPY_MODULE_FROZEN
+    #if MICROPY_MODULE_FROZEN_MPY_COMPRESS_NAMES
+    mp_frozen_module_names_iterate(mp_help_add_from_frozen_name, MP_OBJ_TO_PTR(list));
+    #else
     extern const char mp_frozen_names[];
     mp_help_add_from_names(list, mp_frozen_names);
+    #endif
     #endif
 
     // sort the list so it's printed in alphabetical order

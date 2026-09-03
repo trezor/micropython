@@ -1171,6 +1171,11 @@ typedef time_t mp_timestamp_t;
 #define MICROPY_MODULE_FROZEN_MPY (0)
 #endif
 
+// Whether frozen .mpy module names use front coding with restart blocks
+#ifndef MICROPY_MODULE_FROZEN_MPY_COMPRESS_NAMES
+#define MICROPY_MODULE_FROZEN_MPY_COMPRESS_NAMES (0)
+#endif
+
 // Convenience macro for whether frozen modules are supported
 #ifndef MICROPY_MODULE_FROZEN
 #define MICROPY_MODULE_FROZEN (MICROPY_MODULE_FROZEN_STR || MICROPY_MODULE_FROZEN_MPY)

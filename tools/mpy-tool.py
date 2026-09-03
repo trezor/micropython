@@ -1583,7 +1583,10 @@ def disassemble_mpy(compiled_modules):
         cm.disassemble()
 
 
-def freeze_mpy(firmware_qstr_idents, compiled_modules):
+def freeze_mpy(firmware_qstr_idents, compiled_modules, compress_names):
+    if compress_names:
+        compiled_modules.sort(key=lambda cm: cm.source_file.str)
+
     # add to qstrs
     new = {}
     for q in global_qstrs.qstrs:
@@ -1708,13 +1711,55 @@ def freeze_mpy(firmware_qstr_idents, compiled_modules):
     # makemanifest.py might also include some frozen string content.
     print("    MP_FROZEN_STR_NAMES")
     print("    #endif")
-    mp_frozen_mpy_names_content = 1
-    for cm in compiled_modules:
-        module_name = cm.source_file.str
-        print('    "%s\\0"' % module_name)
-        mp_frozen_mpy_names_content += len(cm.source_file.str) + 1
+    if not compress_names:
+        mp_frozen_mpy_names_content = 1
+        for cm in compiled_modules:
+            module_name = cm.source_file.str
+            print('    "%s\\0"' % module_name)
+            mp_frozen_mpy_names_content += len(module_name) + 1
     print('    "\\0"')
     print("};")
+
+    if compress_names:
+        if len(compiled_modules) > 0xffff:
+            raise ValueError("too many frozen modules")
+
+        mpy_name_block_size = 16
+        mpy_name_data = bytearray()
+        mpy_name_block_offsets = []
+        previous_name = b""
+        for index, cm in enumerate(compiled_modules):
+            module_name = cm.source_file.str.encode("utf8")
+            if index % mpy_name_block_size == 0:
+                mpy_name_block_offsets.append(len(mpy_name_data))
+                previous_name = b""
+            prefix_len = 0
+            for previous_char, char in zip(previous_name, module_name):
+                if previous_char != char:
+                    break
+                prefix_len += 1
+            suffix = module_name[prefix_len:]
+            if prefix_len > 0xff or len(suffix) > 0xff:
+                raise ValueError("frozen module name is too long")
+            mpy_name_data.extend((prefix_len, len(suffix)))
+            mpy_name_data.extend(suffix)
+            previous_name = module_name
+
+        if len(mpy_name_data) > 0xffff:
+            raise ValueError("frozen module name data is too large")
+
+        print()
+        print("const uint8_t mp_frozen_mpy_names[] = {")
+        for offset in range(0, len(mpy_name_data), 16):
+            print("    " + ", ".join("0x%02x" % byte for byte in mpy_name_data[offset : offset + 16]) + ",")
+        print("};")
+        print("const uint16_t mp_frozen_mpy_name_block_offsets[] = {")
+        for offset in mpy_name_block_offsets:
+            print("    %u," % offset)
+        print("};")
+        print("const uint16_t mp_frozen_mpy_name_count = %u;" % len(compiled_modules))
+        print("const uint16_t mp_frozen_mpy_name_block_count = %u;" % len(mpy_name_block_offsets))
+        mp_frozen_mpy_names_content = len(mpy_name_data) + len(mpy_name_block_offsets) * 2 + 4
 
     # Define the array of pointers to frozen module content.
     print()
@@ -2092,6 +2137,11 @@ def main(args=None):
     )
     cmd_parser.add_argument("-f", "--freeze", action="store_true", help="freeze files")
     cmd_parser.add_argument(
+        "--compress-names",
+        action="store_true",
+        help="front-code frozen module names (requires MICROPY_MODULE_FROZEN_MPY_COMPRESS_NAMES)",
+    )
+    cmd_parser.add_argument(
         "-j",
         "--json",
         action="store_true",
@@ -2187,7 +2237,7 @@ def main(args=None):
 
         if args.freeze:
             try:
-                freeze_mpy(firmware_qstr_idents, compiled_modules)
+                freeze_mpy(firmware_qstr_idents, compiled_modules, args.compress_names)
             except FreezeError as er:
                 print(er, file=sys.stderr)
                 sys.exit(1)

@@ -35,6 +35,13 @@ enum {
     MP_FROZEN_MPY,
 };
 
+#if MICROPY_MODULE_FROZEN_MPY_COMPRESS_NAMES
+typedef void (*mp_frozen_module_name_callback_t)(const char *name, size_t len, void *context);
+#endif
+
 mp_import_stat_t mp_find_frozen_module(const char *str, int *frozen_type, void **data);
+#if MICROPY_MODULE_FROZEN_MPY_COMPRESS_NAMES
+void mp_frozen_module_names_iterate(mp_frozen_module_name_callback_t callback, void *context);
+#endif
 
 #endif // MICROPY_INCLUDED_PY_FROZENMOD_H
