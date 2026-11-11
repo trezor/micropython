@@ -686,6 +686,9 @@ static void gc_sweep_free_blocks(void) {
     #if MICROPY_PY_GC_COLLECT_RETVAL
     MP_STATE_MEM(gc_collected) = 0;
     #endif
+    #if MICROPY_PY_GC_STATS
+    size_t used_blocks = 0;
+    #endif
     int free_tail = 0;
     #if MICROPY_GC_SPLIT_HEAP_AUTO
     mp_state_mem_area_t *prev_area = NULL;
@@ -715,6 +718,9 @@ static void gc_sweep_free_blocks(void) {
                         #endif
                     } else {
                         last_used_block = block;
+                        #if MICROPY_PY_GC_STATS
+                        used_blocks += 1;
+                        #endif
                     }
                     break;
 
@@ -722,6 +728,9 @@ static void gc_sweep_free_blocks(void) {
                     ATB_MARK_TO_HEAD(area, block);
                     free_tail = 0;
                     last_used_block = block;
+                    #if MICROPY_PY_GC_STATS
+                    used_blocks += 1;
+                    #endif
                     break;
             }
         }
@@ -739,6 +748,17 @@ static void gc_sweep_free_blocks(void) {
         prev_area = area;
         #endif
     }
+
+    #if MICROPY_PY_GC_STATS
+    if (MP_STATE_MEM(gc_count) == 0) {
+        MP_STATE_MEM(gc_used_blocks_max) = used_blocks;
+        MP_STATE_MEM(gc_used_blocks_min) = used_blocks;
+    } else {
+        MP_STATE_MEM(gc_used_blocks_max) = MAX(MP_STATE_MEM(gc_used_blocks_max), used_blocks);
+        MP_STATE_MEM(gc_used_blocks_min) = MIN(MP_STATE_MEM(gc_used_blocks_min), used_blocks);
+    }
+    MP_STATE_MEM(gc_count) += 1;
+    #endif
 }
 
 // Address sanitizer needs to know that the access to ptrs[i] must always be
