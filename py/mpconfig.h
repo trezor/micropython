@@ -275,6 +275,11 @@ typedef uint64_t mp_uint_t;
 #define MICROPY_GC_CONSERVATIVE_CLEAR (MICROPY_ENABLE_GC)
 #endif
 
+// Whether to zero memory freed by the GC sweep.
+#ifndef MICROPY_GC_CLEAR_ON_SWEEP
+#define MICROPY_GC_CLEAR_ON_SWEEP (0)
+#endif
+
 // Support automatic GC when reaching allocation threshold,
 // configurable by gc.threshold().
 #ifndef MICROPY_GC_ALLOC_THRESHOLD
