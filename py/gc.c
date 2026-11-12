@@ -1087,6 +1087,9 @@ void gc_free(void *ptr) {
     // free head and all of its tail blocks
     do {
         ATB_ANY_TO_FREE(area, block);
+        #if MICROPY_GC_CLEAR_ON_FREE
+        memset((void *)PTR_FROM_BLOCK(area, block), 0, BYTES_PER_BLOCK);
+        #endif
         block += 1;
     } while (ATB_GET_KIND(area, block) == AT_TAIL);
 
