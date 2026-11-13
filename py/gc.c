@@ -1193,6 +1193,13 @@ void *gc_realloc(void *ptr_in, size_t n_bytes, bool allow_move) {
         break;
     }
 
+    #if MICROPY_GC_CLEAR_ON_FREE
+    if (new_blocks <= n_blocks) {
+        // zero everything past the new size, including tail blocks freed below
+        memset((byte *)ptr_in + n_bytes, 0, n_blocks * BYTES_PER_BLOCK - n_bytes);
+    }
+    #endif
+
     // return original ptr if it already has the requested number of blocks
     if (new_blocks == n_blocks) {
         GC_EXIT();
