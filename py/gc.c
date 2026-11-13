@@ -53,10 +53,6 @@ size_t alloc_count = 0;
 // make this 1 to dump the heap each time it changes
 #define EXTENSIVE_HEAP_PROFILING (0)
 
-// make this 1 to zero out swept memory to more eagerly
-// detect untraced object still in use
-#define CLEAR_ON_SWEEP (0)
-
 #define WORDS_PER_BLOCK ((MICROPY_BYTES_PER_GC_BLOCK) / MP_BYTES_PER_OBJ_WORD)
 #define BYTES_PER_BLOCK (MICROPY_BYTES_PER_GC_BLOCK)
 
@@ -713,7 +709,7 @@ static void gc_sweep_free_blocks(void) {
                 case AT_TAIL:
                     if (free_tail) {
                         ATB_ANY_TO_FREE(area, block);
-                        #if CLEAR_ON_SWEEP
+                        #if MICROPY_GC_CLEAR_ON_SWEEP
                         memset((void *)PTR_FROM_BLOCK(area, block), 0, BYTES_PER_BLOCK);
                         #endif
                     } else {
@@ -1111,6 +1107,9 @@ void gc_free(void *ptr) {
     // free head and all of its tail blocks
     do {
         ATB_ANY_TO_FREE(area, block);
+        #if MICROPY_GC_CLEAR_ON_FREE
+        memset((void *)PTR_FROM_BLOCK(area, block), 0, BYTES_PER_BLOCK);
+        #endif
         block += 1;
     } while (ATB_GET_KIND(area, block) == AT_TAIL);
 
@@ -1213,6 +1212,13 @@ void *gc_realloc(void *ptr_in, size_t n_bytes, bool allow_move) {
         }
         break;
     }
+
+    #if MICROPY_GC_CLEAR_ON_FREE
+    if (new_blocks <= n_blocks) {
+        // zero everything past the new size, including tail blocks freed below
+        memset((byte *)ptr_in + n_bytes, 0, n_blocks * BYTES_PER_BLOCK - n_bytes);
+    }
+    #endif
 
     // return original ptr if it already has the requested number of blocks
     if (new_blocks == n_blocks) {
